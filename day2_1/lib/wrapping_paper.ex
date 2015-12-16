@@ -2,28 +2,35 @@ defmodule WrappingPaper do
 
 	def main(args) do
 		# Open the source file
-		filename = parse_args args
+		filename = parse_args(args)
 		case File.open filename, [:read] do
 			{:ok, handle}     -> readlines(handle)
 				|> parse_lines()
-				|> Enum.sum()
-				|> IO.puts()
+				# Sum of tuples
+				|> Enum.reduce(fn({a, b}, {c, d}) -> {a + c, b + d} end)
+				|> show
 			{:error, :enoent} -> IO.puts "No such file: #{filename}"
 		end
 		#IO.inspect handle
 	end
 
-	def parse_lines(list), do: parse_lines(list, [])
-
-	def parse_lines([], areas), do: areas
-
-	def parse_lines([head | tail], areas) do
-		area_of_line = parse_line(head)
-			|> calculate_area()
-		parse_lines(tail, areas ++ [area_of_line])
+	def show({paper, ribbon}) do
+		IO.puts("Need #{paper} ft^2 of paper")
+		IO.puts("Need #{ribbon} ft of ribbon")
 	end
 
-	def calculate_area({x, y, z}) do
+	def parse_lines(list), do: parse_lines(list, [])
+
+	defp parse_lines([], areas), do: areas
+
+	defp parse_lines([head | tail], areas) do
+		dimensions = parse_line(head)
+		paper = calculate_paper(dimensions)
+		ribbon = calculate_ribbon(dimensions)
+		parse_lines(tail, areas ++ [{paper, ribbon}])
+	end
+
+	def calculate_paper({x, y, z}) do
 		a = y * z
 		b = x * z
 		c = x * y
@@ -34,7 +41,17 @@ defmodule WrappingPaper do
 			true              -> c
 		end
 
-		2 * a + 2 * b + 2 * c + extra
+		a + a + b + b + c + c + extra
+	end
+
+	def calculate_ribbon({x, y, z}) do
+		shortest_distance = cond do
+			x <= z and y <= z -> x + x + y + y
+			x <= y and z <= y -> x + x + z + z
+			true              -> y + y + z + z
+		end
+
+		shortest_distance + x * y * z
 	end
 
 	defp first(tuple), do: elem(tuple, 0)
